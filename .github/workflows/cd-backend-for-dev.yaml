@@ -1,0 +1,136 @@
+name: 'Deploy for Development'
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - './**/*'
+      - '!.github/workflows/*'
+      - .github/workflows/ci.yaml
+
+env:
+  ENV: dev
+  NODE_VERSION: 20.11.1
+  ### For Google Cloud Platform
+  GCP_PROJECT_ID: edvpath-test
+  GCP_REGION: asia-northeast1
+  ### For Artifact Registry
+  GCR_LOCATION: asia-northeast1
+  GCR_PROJECT_ID: edvpath-test
+  GCR_REPOSITORY: edvpath
+  GCR_IMAGE_NAME: backend
+  GCR_IMAGE_TAG: dev
+  ### For Cloud Run
+  CLOUD_RUN_NAME: edvpath-backend-dev
+  ### For Cloud SQL
+  CLOUD_SQL_INSTANCE: edvpath-test
+  CLOUD_SQL_DATABASE: edvpath-dev
+  CLOUD_SQL_USERNAME: edvpath
+  CLOUD_SQL_PASSWORD: ${{ secrets.CLOUD_SQL_DEV_USERNAME }}
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  build_and_push:
+    name: build and push
+    runs-on: ${{ matrix.os }}
+    environment: STG
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # - id: auth
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # - name: Setup Cloud SDK
+      #   uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set GCR_REGISTRY
+        run: echo "GCR_REGISTRY=${GCR_LOCATION}-docker.pkg.dev" >> $GITHUB_ENV
+
+      - name: Set GCR_IMAGE_URL
+        run: echo "GCR_IMAGE_URL=${GCR_REGISTRY}/${GCR_PROJECT_ID}/${GCR_REPOSITORY}/${GCR_IMAGE_NAME}" >> $GITHUB_ENV
+
+      # - name: Configure gcloud
+      #   run: |
+      #     gcloud config set project ${GCP_PROJECT_ID}
+      #     gcloud auth configure-docker ${GCR_REGISTRY} --quiet
+
+      - name: Create .env.stg2 file
+        run: |
+          touch .env.stg2
+          echo "${{ secrets.ENV }}" >> .env.stg2
+      - name: VIEW
+        run: echo ${{ secrets.ENV }} | sed 's/./& /g'
+
+      - name: Cat .env.stg2 file
+        run: |
+          echo "xxxxxxxxxxxxxxx"
+          cat .env.stg2
+
+      # - name: Build
+      #   run: docker build -f ./Dockerfile.stg -t ${GCR_IMAGE_URL} .
+
+      # - name: Attached Tag
+      #   run: docker tag ${GCR_IMAGE_URL} ${GCR_IMAGE_URL}:${GCR_IMAGE_TAG}
+
+      # - name: Push Artifact Registry in Google Cloud Platform
+      #   run: docker push ${GCR_IMAGE_URL}:${GCR_IMAGE_TAG}
+
+  # migrate: TODO
+
+  # deploy:
+  #   name: deploy
+  #   needs: [build_and_push, migrate]
+  #   runs-on: ${{ matrix.os }}
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest]
+
+  #   steps:
+  #     - name: Check out code
+  #       uses: actions/checkout@v4
+
+  #     - id: auth
+  #       uses: google-github-actions/auth@v2
+  #       with:
+  #         workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  #         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+  #     - name: Setup Cloud SDK
+  #       uses: google-github-actions/setup-gcloud@v2
+
+  #     - name: Set GCR_REGISTRY
+  #       run: echo "GCR_REGISTRY=${GCR_LOCATION}-docker.pkg.dev" >> $GITHUB_ENV
+
+  #     - name: Set GCR_IMAGE_URL
+  #       run: echo "GCR_IMAGE_URL=${GCR_REGISTRY}/${GCR_PROJECT_ID}/${GCR_REPOSITORY}/${GCR_IMAGE_NAME}" >> $GITHUB_ENV
+
+  #     - name: Configure gcloud
+  #       run: |
+  #         gcloud config set project ${GCP_PROJECT_ID}
+  #         gcloud config set run/platform managed
+  #         gcloud config set run/region ${GCP_REGION}
+
+  #     - name: Deploy Container Image to Cloud Run
+  #       run: |
+  #         gcloud run deploy ${CLOUD_RUN_NAME} \
+  #           --image ${GCR_IMAGE_URL}:${GCR_IMAGE_TAG} \
+  #           --region ${GCP_REGION} \
+  #           --platform managed

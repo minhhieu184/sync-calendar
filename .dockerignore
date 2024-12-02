@@ -1,0 +1,8 @@
+.docker*
+.git*
+.prettierrc
+dist
+node_modules
+docker*
+Dockerfile
+README.md

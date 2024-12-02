@@ -1,0 +1,31 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      Int     @id @default(autoincrement())
+  email   String  @unique
+  name    String?
+  movieId Int?
+  movie   Movie?  @relation(fields: [movieId], references: [id])
+}
+
+model Movie {
+  id          Int     @id @default(autoincrement())
+  releaseYear Int?    @default(0)
+  title       String
+  slug        String  @default("")
+  origin      String? @default("")
+  director    String? @default("")
+  casting     String? @default("")
+  genre       String? @default("")
+  wikiPage    String? @default("")
+  plot        String? @default("")
+  User        User[]
+}

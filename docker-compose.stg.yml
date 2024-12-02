@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # db:
+  #   container_name: starter-db
+  #   image: mysql:8.0
+  #   volumes:
+  #     - starter-db:/var/lib/mysql
+  #     - ./src/config/my.cnf:/etc/mysql/conf.d/my.cnf
+  #     - ./logs:/var/log/mysql
+  #   environment:
+  #     - MYSQL_USER=$DB_USERNAME
+  #     - MYSQL_PASSWORD=$DB_PASSWORD
+  #     - MYSQL_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+  #     - MYSQL_DATABASE=$DB_DATABASE
+  #     - TZ=Asia/Tokyo
+  #   ports:
+  #     - '${DB_FORWARD_PORT}:3306'
+  #   restart: always
+
+  db:
+    container_name: starter-db
+    image: postgres:15
+    user: postgres
+    ports:
+      - '${DB_FORWARD_PORT}:${POSTGRES_PORT}'
+    volumes:
+      - starter-db:/var/lib/postgresql/data
+
+  starter:
+    depends_on:
+      - db
+    container_name: starter-server
+    build:
+      context: .
+      dockerfile: Dockerfile.stg
+    restart: always
+    ports:
+      - '${PORT}:${PORT}'
+
+volumes:
+  starter-db:

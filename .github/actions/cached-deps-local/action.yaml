@@ -1,0 +1,16 @@
+name: Cache Dependencies
+description: Cache Dependencies for faster builds
+runs:
+  using: composite
+  steps:
+    - name: Cache Primes
+      id: cache-primes
+      uses: maxnowack/local-cache@v2
+      with:
+        path: node_modules
+        key: ${{ env.SERVICE }}-${{ runner.os }}-node-modules-${{ hashFiles('**/yarn.lock') }}
+
+    - name: Generate Prime Numbers
+      if: steps.cache-primes.outputs.cache-hit != 'true'
+      run: yarn
+      shell: bash
