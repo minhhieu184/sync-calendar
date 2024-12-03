@@ -1,7 +1,7 @@
 import { NODE_ENV } from './envSchema'
 
 const envPath = {
-  [NODE_ENV.development]: '.env.dev',
+  [NODE_ENV.development]: '.env',
   [NODE_ENV.staging]: '.env.stg',
   [NODE_ENV.production]: '.env.prod'
 }
