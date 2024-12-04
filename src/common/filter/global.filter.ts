@@ -7,7 +7,7 @@ export class GLobalFilter implements ExceptionFilter {
   constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
   catch(e: any, host: ArgumentsHost): void {
-    console.log('GLobalFilter 📕📕📕:', e)
+    console.log('GlobalFilter 📕📕📕:', e)
     const { httpAdapter } = this.httpAdapterHost
 
     const ctx = host.switchToHttp()
