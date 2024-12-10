@@ -1,15 +1,22 @@
 import { ConfidentialClientApplication, LogLevel } from '@azure/msal-node'
 import { Client } from '@microsoft/microsoft-graph-client'
 import { Subscription } from '@microsoft/microsoft-graph-types'
+import { User } from '@model/db/entity'
 import { Injectable } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { Repository } from 'typeorm'
 
 @Injectable()
 export class TestService2 {
-  // constructor(private readonly googleAuth: GoogleAuth) {}
+  constructor(
+    @InjectRepository(User) private usersRepository: Repository<User>
+  ) {}
 
   async onModuleInit() {
+    const user
+
     // Create msal application object
     const msalClient = new ConfidentialClientApplication({
       auth: {
