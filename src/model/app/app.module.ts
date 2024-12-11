@@ -17,25 +17,25 @@ import { AppService } from './app.service'
     AxiosModule,
     ServeStaticModule.forRoot({ rootPath: '/app/dist' }),
     EnvironmentModule,
-    TypeOrmModule.forRootAsync({
-      imports: [EnvironmentModule],
-      inject: [EnvironmentService],
-      useFactory: (environment: EnvironmentService) => ({
-        type: 'postgres',
-        host: environment.get('POSTGRES_HOST'),
-        port: environment.get('DB_FORWARD_PORT'),
-        username: environment.get('POSTGRES_USER'),
-        password: environment.get('POSTGRES_PASSWORD'),
-        database: environment.get('POSTGRES_DB'),
-        entities: ['src/model/db/entity/*.entity.ts'],
-        synchronize: false,
-        migrations: ['src/model/db/migration/**/*{.ts,.js}'],
-        autoLoadEntities
-      })
-    }),
+    // TypeOrmModule.forRootAsync({
+    //   imports: [EnvironmentModule],
+    //   inject: [EnvironmentService],
+    //   useFactory: (environment: EnvironmentService) => ({
+    //     type: 'postgres',
+    //     host: environment.get('POSTGRES_HOST'),
+    //     port: environment.get('DB_FORWARD_PORT'),
+    //     username: environment.get('POSTGRES_USER'),
+    //     password: environment.get('POSTGRES_PASSWORD'),
+    //     database: environment.get('POSTGRES_DB'),
+    //     entities: ['src/model/db/entity/*.entity.ts'],
+    //     synchronize: false,
+    //     migrations: ['src/model/db/migration/**/*{.ts,.js}'],
+    //     autoLoadEntities
+    //   })
+    // }),
     /** MODEL */
-    GoogleModule,
-    CalendarModule
+    // GoogleModule,
+    // CalendarModule
   ],
   controllers: [AppController],
   providers: [

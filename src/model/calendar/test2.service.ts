@@ -15,7 +15,7 @@ export class TestService2 {
   ) {}
 
   async onModuleInit() {
-    const user
+    // const user
 
     // Create msal application object
     const msalClient = new ConfidentialClientApplication({
