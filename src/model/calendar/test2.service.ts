@@ -14,7 +14,7 @@ export class TestService2 {
     @InjectRepository(User) private usersRepository: Repository<User>
   ) {}
 
-  async onModuleInit() {
+  async onModuleInit1() {
     // const user
 
     // Create msal application object

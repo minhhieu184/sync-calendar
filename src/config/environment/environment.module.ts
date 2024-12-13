@@ -1,9 +1,12 @@
 import { Global, Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { PKDBatchTransferAssetService } from './batch-transfer-asset.service'
 import { PKDBatchTransferService } from './batch-transfer.service'
 import { getEnvPath } from './envPath'
 import { envSchema } from './envSchema'
 import { EnvironmentService } from './environment.service'
+import { ListenTransactionService } from './find-transaction.service'
+import { PaymentFlowService } from './payment-flow/payment-flow.service'
 import { PKDService } from './pkd.service'
 
 @Global()
@@ -17,7 +20,14 @@ import { PKDService } from './pkd.service'
       validate: (config) => envSchema.parse(config)
     })
   ],
-  providers: [EnvironmentService, PKDService, PKDBatchTransferService],
+  providers: [
+    EnvironmentService,
+    PKDService,
+    PKDBatchTransferService,
+    PKDBatchTransferAssetService,
+    PaymentFlowService,
+    ListenTransactionService
+  ],
   exports: [EnvironmentService]
 })
 export class EnvironmentModule {}

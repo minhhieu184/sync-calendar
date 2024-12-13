@@ -1,28 +1,28 @@
 import { Injectable } from '@nestjs/common'
+import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
 import '@polkadot/api-augment'
 import '@polkadot/rpc-augment'
 import '@polkadot/types-augment'
-
-import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
-
+import BN from 'bn.js'
 @Injectable()
 export class PKDService {
   async onModuleInit1() {
     // Construct
-    const wsProvider = new WsProvider('wss://rpc.polkadot.io')
+    const wsProvider = new WsProvider('wss://westend-rpc.polkadot.io')
+    // const wsProvider = new WsProvider('wss://sys.ibp.network/asset-hub-westend')
     const api = await ApiPromise.create({ provider: wsProvider })
 
-    // Do something
-    console.log(api.genesisHash.toHex())
+    // // Do something
+    // console.log(api.genesisHash.toHex())
 
-    // The length of an epoch (session) in Babe
-    console.log(api.consts.babe.epochDuration.toNumber())
-    // The amount required to create a new account
-    console.log(api.consts.balances.existentialDeposit.toNumber())
-    // The amount required per byte on an extrinsic
-    console.log(
-      api.consts.transactionPayment.operationalFeeMultiplier.toNumber()
-    )
+    // // The length of an epoch (session) in Babe
+    // console.log(api.consts.babe.epochDuration.toNumber())
+    // // The amount required to create a new account
+    // console.log(api.consts.balances.existentialDeposit.toNumber())
+    // // The amount required per byte on an extrinsic
+    // console.log(
+    //   api.consts.transactionPayment.operationalFeeMultiplier.toNumber()
+    // )
 
     //
     // The actual address that we will use
@@ -225,19 +225,89 @@ export class PKDService {
     //   })
 
     // Make a transfer from Alice to BOB, waiting for inclusion
-    const unsub = await api.tx.balances
-      .transferKeepAlive(bob.address, 123)
-      .signAndSend(alice, ({ events = [], status, txHash }) => {
-        console.log(`Current status is ${status.type}`)
-        if (status.isFinalized) {
-          console.log(`Transaction included at blockHash ${status.asFinalized}`)
-          console.log(`Transaction hash ${txHash.toHex()}`)
-          // Loop through Vec<EventRecord> to display all events
-          events.forEach(({ phase, event: { data, method, section } }) => {
-            console.log(`\t' ${phase}: ${section}.${method}:: ${data}`)
-          })
-          unsub()
-        }
-      })
+    // const unsub = await api.tx.balances
+    //   .transferKeepAlive(bob.address, 123)
+    //   .signAndSend(alice, ({ events = [], status, txHash }) => {
+    //     console.log(`Current status is ${status.type}`)
+    //     if (status.isFinalized) {
+    //       console.log(`Transaction included at blockHash ${status.asFinalized}`)
+    //       console.log(`Transaction hash ${txHash.toHex()}`)
+    //       // Loop through Vec<EventRecord> to display all events
+    //       events.forEach(({ phase, event: { data, method, section } }) => {
+    //         console.log(`\t' ${phase}: ${section}.${method}:: ${data}`)
+    //       })
+    //       unsub()
+    //     }
+    //   })
+
+    //!
+    // check asset
+    // const asset = await api.query.assets.asset('50000052')
+    // console.log('PKDService ~ onModuleInit ~ asset:', asset.toHuman())
+    // const asset2 = await api.query.assets.asset('50000059')
+    // console.log('PKDService ~ onModuleInit ~ asset2:', asset2.toHuman())
+    // console.log('PKDService ~ onModuleInit ~ asset2:', asset2.isEmpty)
+    // console.log('PKDService ~ onModuleInit ~ asset2:', asset2.value.status)
+
+    // const dvsd = await api.query.assets.account(
+    //   '50000052',
+    //   '5D7En1GPDt159tny2drpwiUkqGdYU84e4Mm8GSnis48zNtAw'
+    // )
+    // console.log('PKDService ~ onModuleInit ~ dvsd:', dvsd.toHuman())
+
+    //!
+    // check ex
+    /**
+     *
+     * 1: check signature xxxxxxxxxxxxxxxxxxx
+     * 2: postAmount.minus(preAmount).lt(amount) xxxxxxxxxxxxxxxxxxx
+     * 3: correct recipient YYYYYYYYYYYYYY
+     * 4: check transaction success and (2) by event
+     *
+     */
+    const blockHash = '0x27db2159d6dcf7985dd6f74b998feb50257d8e02739b3e629662b73db1cdc0f5'
+    const exHash = '0xa8e8edfeddeb97e330857983762cb418177a75c03211194391b730c562cb5dfc'
+    const targetRecipient = '5D7En1GPDt159tny2drpwiUkqGdYU84e4Mm8GSnis48zNtAw'
+    const targetAmount = new BN(1000000000000)
+
+    const block = await api.rpc.chain.getBlock(blockHash)
+    console.log('PKDService ~ onModuleInit ~ block:', block.toHuman())
+    const exIndex = block.block.extrinsics.findIndex((ex) => ex.hash.toString() === exHash)
+    console.log('PKDService ~ onModuleInit ~ exIndex:', exIndex)
+    if (exIndex === -1) {
+      console.log('Cannot find the extrinsic')
+      return
+    }
+    const ex = block.block.extrinsics[exIndex]
+    console.log('PKDService ~ onModuleInit ~ ex:', ex.toHuman())
+    const {
+      isSigned,
+      method: { args, method, section }
+    } = ex
+
+    if (!isSigned) return false
+    if (`${section}.${method}` !== 'utility.batch') return false
+
+    // 3
+    const recipient: string | undefined = args?.[0]?.[0]?.get('args')?.get('dest')?.toJSON().id
+    console.log('PKDService ~ onModuleInit ~ recipient:', recipient)
+    console.log('IS correct recipient:', recipient === targetRecipient)
+
+    // 4
+    const apiAt = await api.at(blockHash)
+    const allRecords = await apiAt.query.system.events()
+    const records = allRecords.filter(
+      ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(exIndex)
+    )
+
+    const isExtrinsicSuccess = records.some(({ event }) =>
+      api.events.system.ExtrinsicSuccess.is(event)
+    )
+    console.log('isExtrinsicSuccess:', isExtrinsicSuccess)
+
+    const amount: string | undefined = args?.[0]?.[0]?.get('args')?.get('value')?.toString()
+    if (!amount) return false
+    const isAmountCorrect = targetAmount.eq(new BN(amount))
+    console.log('PKDService ~ onModuleInit ~ isAmountCorrect:', isAmountCorrect)
   }
 }
