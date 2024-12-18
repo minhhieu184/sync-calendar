@@ -1,29 +1,12 @@
-import { AddressOrPair } from '@polkadot/api/types'
 import BN from 'bn.js'
 
-// export type LikeAddress =
-//   | string
-//   | Uint8Array<ArrayBufferLike>
-//   | GenericMultiAddress
-//   | {
-//       Id: any
-//     }
-//   | {
-//       Index: any
-//     }
-//   | {
-//       Raw: any
-//     }
-//   | {
-//       Address32: any
-//     }
-//   | {
-//       Address20: any
-//     }
 export type PublicKey = Uint8Array<ArrayBufferLike>
+export type AddressString = string
 
 /** `recipient` in the [Solana Pay spec](https://github.com/solana-labs/solana-pay/blob/master/SPEC.md#recipient). */
-export type Recipient = PublicKey
+export type Recipient = PublicKey | AddressString
+
+export type Sender = PublicKey | AddressString
 
 /** `amount` in the [Solana Pay spec](https://github.com/solana-labs/solana-pay/blob/master/SPEC.md#amount). */
 export type Amount = BN

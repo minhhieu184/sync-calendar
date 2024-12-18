@@ -12,8 +12,8 @@ export class FindReferenceError extends Error {
 }
 
 export interface FindReferenceResponse {
-  blockHash: BlockHash | string | Uint8Array<ArrayBufferLike>
-  extrinsicHash: CodecHash | string | Uint8Array<ArrayBufferLike>
+  blockHash: BlockHash
+  extrinsicHash: CodecHash
 }
 
 export interface FindReferenceOption {

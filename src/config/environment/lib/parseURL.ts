@@ -1,14 +1,14 @@
 import { decodeAddress } from '@polkadot/util-crypto'
 import BN from 'bn.js'
 import { POLKADOT_PROTOCOL } from './constants.js'
-import type { Amount, Label, Message, PublicKey, Recipient, Reference, TokenID } from './types'
+import type { Amount, Label, Link, Message, PublicKey, Recipient, Reference, TokenID } from './types'
 
 /**
  * A Solana Pay transfer request URL.
  */
 export interface TransferRequestURL {
   /** `recipient` in the [Solana Pay spec](https://github.com/solana-labs/solana-pay/blob/master/SPEC.md#recipient). */
-  recipient: Recipient
+  recipient: PublicKey
   /** `amount` in the [Solana Pay spec](https://github.com/solana-labs/solana-pay/blob/master/SPEC.md#amount). */
   amount: Amount | undefined
   /** `spl-token` in the [Solana Pay spec](https://github.com/solana-labs/solana-pay/blob/master/SPEC.md#spl-token). */
@@ -48,7 +48,7 @@ export function parseURL(url: string | URL): TransferRequestURL {
   return parseTransferRequestURL(url)
 }
 
-function parseTransferRequestURL(url: URL): TransferRequestURL {
+function parseTransferRequestURL(url: Link): TransferRequestURL {
   const { pathname, searchParams } = url
   let recipient: PublicKey
   try {
@@ -78,7 +78,7 @@ function parseTransferRequestURL(url: URL): TransferRequestURL {
   return {
     recipient,
     amount,
-    tokenID, 
+    tokenID,
     reference,
     label,
     message

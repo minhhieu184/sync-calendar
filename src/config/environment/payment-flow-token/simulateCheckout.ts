@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import { randomUUID } from 'crypto'
-import { References } from '../lib'
-import { planckFromWND } from './utils'
+import { References, TokenID } from '../lib'
+import { TOKEN_ID } from './constants'
 
 /**
  * Simulate a checkout experience
@@ -17,12 +17,14 @@ export async function simulateCheckout(): Promise<{
   label: string
   message: string
   amount: BN
+  tokenID: TokenID
   reference: References
 }> {
   return {
     label: 'Jungle Cats store',
     message: 'Jungle Cats store - your order - #001234',
-    amount: planckFromWND(1), // 1WND
+    tokenID: TOKEN_ID,
+    amount: new BN(1000 * Math.pow(10, 10)), // 1000 IPP
     reference: randomUUID()
   }
 }

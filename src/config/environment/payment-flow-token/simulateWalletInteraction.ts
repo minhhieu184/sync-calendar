@@ -10,11 +10,11 @@ export async function simulateWalletInteraction(api: ApiPromise, url: URL) {
    * The URL that triggers the wallet interaction; follows the Solana Pay URL scheme
    * The parameters needed to create the correct transaction is encoded within the URL
    */
-  const { recipient, amount, reference, label, message } = parseURL(url)
+  const { recipient, tokenID, amount, reference, label, message } = parseURL(url)
   console.log('\t Label: ', label)
   console.log('\t Message: ', message)
 
-  const fallbackAmount = new BN(Math.pow(10, 12)) // 1 WND
+  const fallbackAmount = new BN(1000 * Math.pow(10, 10)) // 1000 IPP
 
   /**
    * Create the transaction with the parameters decoded from the URL
@@ -22,6 +22,7 @@ export async function simulateWalletInteraction(api: ApiPromise, url: URL) {
   const customerKeyringPair = new Keyring({ type: 'sr25519' }).addFromMnemonic(CUSTOMER_MNEMONIC)
   const tx = await createTransfer(api, customerKeyringPair.publicKey, {
     recipient,
+    tokenID,
     amount: amount || fallbackAmount,
     reference
   })
@@ -38,7 +39,7 @@ export async function simulateWalletInteraction(api: ApiPromise, url: URL) {
   //   if (status.isFinalized) {
   //     console.log(`\tTransaction finalized at blockHash ${status.asFinalized}`)
   //     console.log(`\tTransaction hash ${txHash.toHex()}`)
-  //     console.log(`\t ✅ Westend Subscan: https://westend.subscan.io/extrinsic/${txHash.toHex()}`)
+  //     console.log(`\t ✅ Westend Subscan: https://assethub-westend.subscan.io/extrinsic/${txHash.toHex()}`)
   //     // Loop through Vec<EventRecord> to display all events
   //     events.forEach(({ phase, event: { data, method, section } }) => {
   //       console.log(`\t' ${phase}: ${section}.${method}:: ${data}`)

@@ -6,7 +6,8 @@ import { getEnvPath } from './envPath'
 import { envSchema } from './envSchema'
 import { EnvironmentService } from './environment.service'
 import { ListenTransactionService } from './find-transaction.service'
-import { PaymentFlowService } from './payment-flow/payment-flow.service'
+import { PaymentFlowTokenService } from './payment-flow-token/payment-flow-token.service'
+import { PaymentFlowNativeService } from './payment-flow/payment-flow-native.service'
 import { PKDService } from './pkd.service'
 
 @Global()
@@ -25,8 +26,9 @@ import { PKDService } from './pkd.service'
     PKDService,
     PKDBatchTransferService,
     PKDBatchTransferAssetService,
-    PaymentFlowService,
-    ListenTransactionService
+    ListenTransactionService,
+    PaymentFlowNativeService,
+    PaymentFlowTokenService
   ],
   exports: [EnvironmentService]
 })

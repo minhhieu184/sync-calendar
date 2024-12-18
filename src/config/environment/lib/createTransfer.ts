@@ -3,7 +3,7 @@ import { SubmittableExtrinsic } from '@polkadot/api/types'
 import { ISubmittableResult } from '@polkadot/types/types'
 import { BN } from 'bn.js'
 import { POLKADOT_EXISTENTIAL_DEPOSIT } from './constants.js'
-import type { Amount, PublicKey, Recipient, References, TokenID } from './types.js'
+import type { Amount, Recipient, References, Sender, TokenID } from './types.js'
 
 /**
  * Thrown when a Solana Pay transfer transaction can't be created from the fields provided.
@@ -38,7 +38,7 @@ export interface CreateTransferFields {
  */
 export async function createTransfer(
   api: ApiPromise,
-  sender: PublicKey,
+  sender: Sender,
   { recipient, amount, tokenID, reference }: CreateTransferFields
 ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
   // A native SOL or SPL token transfer instruction
@@ -50,10 +50,10 @@ export async function createTransfer(
 }
 
 async function createNativeTransferExtrinsic(
-  recipient: PublicKey,
+  recipient: Recipient,
   amount: Amount,
   reference: References | undefined,
-  sender: PublicKey,
+  sender: Sender,
   api: ApiPromise
 ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
   // Check that the recipient account exists
@@ -80,11 +80,11 @@ async function createNativeTransferExtrinsic(
 }
 
 async function createTokenTransferExtrinsic(
-  recipient: PublicKey,
+  recipient: Recipient,
   amount: Amount,
   reference: References | undefined,
   tokenID: string,
-  sender: PublicKey,
+  sender: Sender,
   api: ApiPromise
 ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>> {
   // Check that the token provided is an initialized mint

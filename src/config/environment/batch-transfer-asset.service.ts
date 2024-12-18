@@ -13,8 +13,7 @@ export class PKDBatchTransferAssetService {
     // Create a keyring instance
     const keyring = new Keyring({ type: 'sr25519' })
     // Some mnemonic phrase
-    const PHRASE =
-      'swamp stock camp ozone play organ fantasy rich praise beyond elegant banner' // wallet mhieu2
+    const PHRASE = '' // wallet mhieu2
     // Add an account, straight mnemonic
     const mhieu2KeyringPair = keyring.addFromUri(PHRASE)
     console.log(mhieu2KeyringPair.address)
@@ -55,7 +54,7 @@ export class PKDBatchTransferAssetService {
     //       console.log(`Transaction included at blockHash ${status.asFinalized}`)
     //       console.log(`Transaction hash ${txHash.toHex()}`)
     //       console.log(
-    //         `Westend Subscan: https://westend.subscan.io/extrinsic/${txHash.toHex()}`
+    //         `Westend Subscan: https://assethub-westend.subscan.io/extrinsic/${txHash.toHex()}`
     //       )
     //       // Loop through Vec<EventRecord> to display all events
     //       events.forEach(({ phase, event: { data, method, section } }) => {

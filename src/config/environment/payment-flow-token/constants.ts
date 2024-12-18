@@ -8,5 +8,7 @@ export const MERCHANT_WALLET: Recipient = decodeAddress(
 // Mnemonic purely for testing purposes.
 export const CUSTOMER_MNEMONIC = ''
 
-export const WESTEND_RELAY_RPC = 'wss://westend-rpc.polkadot.io'
 export const WESTEND_ASSET_HUB_RPC = 'wss://sys.ibp.network/asset-hub-westend'
+
+// Token ID
+export const TOKEN_ID = '50000052' // ITS PKD PAY - IPP

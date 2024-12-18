@@ -1,6 +1,16 @@
 import { encodeAddress } from '@polkadot/util-crypto'
 import { POLKADOT_PROTOCOL } from './constants'
-import type { Amount, Label, Memo, Message, Recipient, References, TokenID } from './types'
+import type {
+  AddressString,
+  Amount,
+  Label,
+  Link,
+  Memo,
+  Message,
+  Recipient,
+  References,
+  TokenID
+} from './types'
 
 /**
  * Fields of a Solana Pay transfer request URL.
@@ -27,11 +37,7 @@ export interface TransferRequestURLFields {
  *
  * @param fields Fields to encode in the URL.
  */
-export function encodeURL(fields: TransferRequestURLFields): URL {
-  return encodeTransferRequestURL(fields)
-}
-
-function encodeTransferRequestURL({
+export function encodeURL({
   recipient,
   amount,
   tokenID,
@@ -39,7 +45,7 @@ function encodeTransferRequestURL({
   label,
   message,
   memo
-}: TransferRequestURLFields): URL {
+}: TransferRequestURLFields): Link {
   const pathname = encodeAddress(recipient)
   const url = new URL(POLKADOT_PROTOCOL + pathname)
 

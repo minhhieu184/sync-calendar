@@ -13,8 +13,7 @@ export class PKDBatchTransferService {
     // Create a keyring instance
     const keyring = new Keyring({ type: 'sr25519' })
     // Some mnemonic phrase
-    const PHRASE =
-      'swamp stock camp ozone play organ fantasy rich praise beyond elegant banner' // wallet mhieu2
+    const PHRASE = '' // wallet mhieu2
     // Add an account, straight mnemonic
     const mhieu2KeyringPair = keyring.addFromUri(PHRASE)
     console.log(mhieu2KeyringPair.address)
@@ -54,9 +53,7 @@ export class PKDBatchTransferService {
         if (status.isFinalized) {
           console.log(`Transaction included at blockHash ${status.asFinalized}`)
           console.log(`Transaction hash ${txHash.toHex()}`)
-          console.log(
-            `Westend Subscan: https://westend.subscan.io/extrinsic/${txHash.toHex()}`
-          )
+          console.log(`Westend Subscan: https://westend.subscan.io/extrinsic/${txHash.toHex()}`)
           // Loop through Vec<EventRecord> to display all events
           events.forEach(({ phase, event: { data, method, section } }) => {
             console.log(`\t' ${phase}: ${section}.${method}:: ${data}`)
@@ -67,15 +64,11 @@ export class PKDBatchTransferService {
 
     //!
     // no blockHash is specified, so we retrieve the latest
-    const blockHash =
-      '0x60037b8caaca45c86edbe1515f80ef1bf9eb89fbc15a292a2e50ebf76deb62ce'
-    const exHash =
-      '0x8c49b678e35181150cd4e354f98431a8fcdb5c09885a8f1fb0da69826bec1856'
+    const blockHash = '0x60037b8caaca45c86edbe1515f80ef1bf9eb89fbc15a292a2e50ebf76deb62ce'
+    const exHash = '0x8c49b678e35181150cd4e354f98431a8fcdb5c09885a8f1fb0da69826bec1856'
     const signedBlock = await api.rpc.chain.getBlock(blockHash)
     // the information for each of the contained extrinsics
-    const myEx = signedBlock.block.extrinsics.find(({ hash }) =>
-      hash.eq(exHash)
-    )
+    const myEx = signedBlock.block.extrinsics.find(({ hash }) => hash.eq(exHash))
     if (!myEx) {
       console.log('Unable to find extrinsic')
       return

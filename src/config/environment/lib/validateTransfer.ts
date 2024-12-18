@@ -107,7 +107,7 @@ async function validateTokenTransfer(
   recipient: Recipient
 ) {
   // Check tokenID
-  const { isEmpty } = await api.query.tokens.tokens(tokenID)
+  const { isEmpty } = await api.query.assets.asset(tokenID)
   if (isEmpty) throw new ValidateTransferError('tokenID not found')
 
   const tokenIDInEx: string | undefined = args?.[0]?.[0]?.get('args')?.get('id')?.toString()
