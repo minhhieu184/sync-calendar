@@ -27,10 +27,9 @@ import { AppService } from './app.service'
         username: environment.get('POSTGRES_USER'),
         password: environment.get('POSTGRES_PASSWORD'),
         database: environment.get('POSTGRES_DB'),
-        entities: ['src/model/db/entity/*.entity.ts'],
         synchronize: false,
-        migrations: ['src/model/db/migration/**/*{.ts,.js}'],
-        autoLoadEntities
+        entities: ['dist/**/entity/*.entity.{ts,js}'],
+        migrations: ['dist/**/migration/**/*{.ts,.js}']
       })
     }),
     /** MODEL */

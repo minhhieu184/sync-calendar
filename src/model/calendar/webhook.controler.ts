@@ -1,58 +1,92 @@
-import { ConfidentialClientApplication, LogLevel } from '@azure/msal-node'
-import { Client } from '@microsoft/microsoft-graph-client'
-import { ChangeNotificationCollection } from '@microsoft/microsoft-graph-types'
-import { Body, Controller, Headers, Post, Query, Res } from '@nestjs/common'
-import { Response } from 'express'
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { googleAuth } from '@common'
+import { Event, EventChannel } from '@model/db/entity'
+import { Body, Controller, Headers, Post, Query } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { calendar_v3, google } from 'googleapis'
+import { Repository } from 'typeorm'
+import { MSAuthService } from './ms-auth.service'
 
 @Controller('webhook')
 export class Webhook {
-  private time = 1
+  constructor(
+    @InjectRepository(EventChannel)
+    private eventChannelRepository: Repository<EventChannel>,
+    @InjectRepository(Event)
+    private eventRepository: Repository<Event>,
+    private readonly msAuthService: MSAuthService
+  ) {}
+
   @Post('google')
-  async index(@Body() body: any, @Headers() headers: any) {
+  async index(
+    @Body() body: any,
+    @Headers() headers: any,
+    @Query('email') email: string
+  ) {
     console.log('EVENTTTTT')
-    console.log('Webhook ~ index ~ headers:', headers)
 
-    //* CREATE MS EVENT
-    const msalClient = new ConfidentialClientApplication({
-      auth: {
-        clientId: process.env.OAUTH_CLIENT_ID || '',
-        authority: `${process.env.OAUTH_AUTHORITY}/${process.env.OAUTH_TENANT_ID}`,
-        clientSecret: process.env.OAUTH_CLIENT_SECRET
-      },
-      system: {
-        loggerOptions: {
-          loggerCallback(logLevel, message, containsPii) {
-            console.log(message)
-          },
-          piiLoggingEnabled: false,
-          logLevel: LogLevel.Error
-        }
-      }
+    const auth = googleAuth(email)
+    const calendar = google.calendar({ version: 'v3', auth })
+    const eventChannel = await this.eventChannelRepository.findOne({
+      where: { email }
+    })
+    if (!eventChannel) return
+    const {
+      data: { items, ...rest }
+    } = await calendar.events.list({
+      calendarId: 'primary',
+      syncToken: eventChannel.syncToken
+    })
+    console.log('Webhook ~ items:', items)
+    // console.log(
+    //   'Webhook ~ data:',
+    //   email,
+    //   items?.map((item) => ({
+    //     id: item.id,
+    //     status: item.status,
+    //     creator: item.creator,
+    //     organizer: item.organizer,
+    //     attendees: JSON.stringify(item.attendees, null, 2)
+    //   }))
+    // )
+
+    /////////////////
+    const item = items?.[0]
+    if (!item) return
+
+    const workspaceEventId = item.id
+    if (!workspaceEventId) return
+    const eventInDb = await this.eventRepository.findOne({
+      where: { workspaceEventId }
     })
 
-    const client = Client.init({
-      // Implement an auth provider that gets a token
-      // from the app's MSAL instance
-      authProvider: async (done) => {
-        try {
-          // Get a token using client credentials
-          const response = await msalClient.acquireTokenByClientCredential({
-            scopes: [
-              'https://graph.microsoft.com/.default'
-              // 'https://graph.microsoft.com/User.Read.All'
-            ]
-          })
-          if (!response) return done(new Error('Error: No response'), null)
-          // First param to callback is the error,
-          // Set to null in success case
-          done(null, response.accessToken)
-        } catch (err) {
-          console.log(JSON.stringify(err, Object.getOwnPropertyNames(err)))
-          done(err, null)
-        }
+    const isEmptyEvent = !item.htmlLink
+    if (isEmptyEvent) {
+      if (eventInDb && item.creator?.email === email) {
+        // => soft delete event trong db, delete event ở MS
+        await this.eventRepository.softDelete(eventInDb.id)
+
+        // TODO: here we should create MS event table and store, and now we query MS event table to get event id in MS to delete event
+        await this.deleteMSEvent(email, 'xxxxxxxxxxxxx')
       }
-    })
+    } else {
+      if (eventInDb) {
+        if (item.creator?.email === email) {
+          if (eventInDb.deletedAt) {
+            // <un-delete> : update isupdate => true, create event ở MS với mail room
+          } else {
+            /**
+             * <update> : check xem event update room hay time không
+             *     => update room: delete event ở MS, create event ở MS với mail room
+             *     => update time: update event time ở MS
+             */
+          }
+        }
+      } else {
+        // => create event trong db, create 1 event ở MS với mail room
+      }
+    }
+
+    // //* CREATE MS EVENT
 
     // client.api('/users/hieuptm@iceteasoftware.com/events').post(
     //   {
@@ -106,152 +140,196 @@ export class Webhook {
     //     console.log('TestService2 ~ onModuleInit1 ~ e:', e)
     //   }
     // )
-
-    return 123
   }
 
-  @Post('microsoft')
-  async index2(
-    @Body() body: ChangeNotificationCollection,
-    @Query() query: any,
-    @Res() res: Response
-  ) {
-    // console.log('Webhook ~ index2 ~ body:', body?.value)
-    console.log('Webhook ~ time:', this.time, new Date())
-    const t = this.time
-    this.time++
-
-    // Create msal application object
-    const msalClient = new ConfidentialClientApplication({
-      auth: {
-        clientId: process.env.OAUTH_CLIENT_ID || '',
-        authority: `${process.env.OAUTH_AUTHORITY}/${process.env.OAUTH_TENANT_ID}`,
-        clientSecret: process.env.OAUTH_CLIENT_SECRET
-      },
-      system: {
-        loggerOptions: {
-          loggerCallback(logLevel, message, containsPii) {
-            console.log(message)
-          },
-          piiLoggingEnabled: false,
-          logLevel: LogLevel.Error
-        }
-      }
+  async deleteMSEvent(email: string, eventId: string) {
+    return new Promise((resolve, reject) => {
+      this.msAuthService.client
+        .api(`/users/${email}/events/${eventId}`)
+        .delete((err, res) => {
+          if (err) return reject(err)
+          resolve(res)
+        })
     })
-    const client = Client.init({
-      // Implement an auth provider that gets a token
-      // from the app's MSAL instance
-      authProvider: async (done) => {
-        try {
-          // Get a token using client credentials
-          const response = await msalClient.acquireTokenByClientCredential({
-            scopes: [
-              'https://graph.microsoft.com/.default'
-              // 'https://graph.microsoft.com/User.Read.All'
-            ]
-          })
-          if (!response) return done(new Error('Error: No response'), null)
-          // First param to callback is the error,
-          // Set to null in success case
-          done(null, response.accessToken)
-        } catch (err) {
-          console.log(JSON.stringify(err, Object.getOwnPropertyNames(err)))
-          done(err, null)
-        }
-      }
-    })
+  }
 
-    if (query && query.validationToken) {
-      res.setHeader('Content-Type', 'text/plain')
-      res.status(201).send(query.validationToken)
-      return
-    }
-
-    const JWKS = createRemoteJWKSet(
-      new URL('https://login.microsoftonline.com/common/discovery/v2.0/keys')
-    )
-
-    // Check for validation tokens, validate them if present
-    let areTokensValid = true
-
-    if (body.validationTokens) {
-      console.log('Webhook ~ body.validationTokens:', body.validationTokens)
-      const appId = process.env.OAUTH_CLIENT_ID!
-      const tenantId = process.env.OAUTH_TENANT_ID
-
-      const { payload, protectedHeader } = await jwtVerify(
-        body.validationTokens[0],
-        JWKS,
-        {
-          audience: [appId],
-          issuer: [`https://sts.windows.net/${tenantId}/`]
-        }
-      )
-      console.log('Webhook ~ payload:', payload)
-      console.log('Webhook ~ protectedHeader:', protectedHeader)
-
-      // const validationResults = await Promise.all(
-      //   body.validationTokens.map((token) =>
-      //     tokenHelper.isTokenValid(token, appId, tenantId)
-      //   )
-      // )
-
-      // areTokensValid = validationResults.reduce((x, y) => x && y)
-    }
-
-    if (!body.value) {
-      res.status(202).end()
-      return
-    }
-    for (let i = 0; i < body.value.length; i++) {
-      const notification = body.value[i]
-
-      // // Verify we have a matching subscription record in the database
-      // const subscription = await dbHelper.getSubscription(
-      //   notification.subscriptionId
-      // )
-      // if (subscription) {
-      //   // If notification has encrypted content, process that
-      //   if (notification.encryptedContent) {
-      //     processEncryptedNotification(notification)
-      //   } else {
-      //     await processNotification(
-      //       notification,
-      //       req.app.locals.msalClient,
-      //       subscription.userAccountId
-      //     )
-      //   }
-      // }
-
-      //////////////////////
-      console.log('Webhook ~ notification:', t, notification.changeType)
-      client
-        .api(
-          `/users/hieuptm@iceteasoftware.com/events/${notification.resourceData?.['id']}?$select=subject,organizer,attendees,start,end,location`
-        )
-        .get((err, res) => {
-          if (err) {
-            console.log(123, err)
-            return
+  async createEvent(calendar: calendar_v3.Calendar) {
+    const { data } = await calendar.events.insert({
+      calendarId: 'primary', // nil
+      requestBody: {
+        summary: '4 Google I/O 2022', // subject
+        location: 'HUD-15-Phòng họp Mirai 2 (6)', // nil
+        description: "A chance to hear more about Google's developer products.", //body
+        start: {
+          // start
+          dateTime: '2024-12-15T10:30:00+07:00',
+          timeZone: 'Asia/Ho_Chi_Minh'
+        },
+        end: {
+          // end
+          dateTime: '2024-12-15T11:30:00+07:00',
+          timeZone: 'Asia/Ho_Chi_Minh'
+        },
+        // recurrence: ['RRULE:FREQ=DAILY;COUNT=2'],
+        attendees: [
+          //attendees: contain room
+          { email: 'hieu.pham1@icetea.io' },
+          { email: 'tung.cong@icetea.io' },
+          {
+            email:
+              'c_18826djmihdiagcuit1ns3ditlqhc@resource.calendar.google.com', // location
+            resource: true
           }
-          console.log(t, res.subject, res.status, res.attendees)
-          // const events: Event[] = res.value
-          // console.log(events)
-        })
-        .catch((err) => {
-          console.log(456, err)
-        })
-    }
-
-    res.status(202).end()
+        ],
+        creator: { email: 'hieu.pham1@icetea.io' }, // nil
+        organizer: { email: 'hieu.pham1@icetea.io' } // organizer
+      }
+    })
+    return data
   }
 
-  @Post('microsoft/lifecycle')
-  async index3(@Query() query: any, @Res() res: Response) {
-    if (query && query.validationToken) {
-      res.setHeader('Content-Type', 'text/plain')
-      res.status(201).send(query.validationToken)
-      return
-    }
-  }
+  // @Post('microsoft')
+  // async index2(
+  //   @Body() body: ChangeNotificationCollection,
+  //   @Query() query: any,
+  //   @Res() res: Response
+  // ) {
+  //   // console.log('Webhook ~ index2 ~ body:', body?.value)
+  //   console.log('Webhook ~ time:', this.time, new Date())
+  //   const t = this.time
+  //   this.time++
+
+  //   // Create msal application object
+  //   const msalClient = new ConfidentialClientApplication({
+  //     auth: {
+  //       clientId: process.env.OAUTH_CLIENT_ID || '',
+  //       authority: `${process.env.OAUTH_AUTHORITY}/${process.env.OAUTH_TENANT_ID}`,
+  //       clientSecret: process.env.OAUTH_CLIENT_SECRET
+  //     },
+  //     system: {
+  //       loggerOptions: {
+  //         loggerCallback(logLevel, message, containsPii) {
+  //           console.log(message)
+  //         },
+  //         piiLoggingEnabled: false,
+  //         logLevel: LogLevel.Error
+  //       }
+  //     }
+  //   })
+  //   const client = Client.init({
+  //     // Implement an auth provider that gets a token
+  //     // from the app's MSAL instance
+  //     authProvider: async (done) => {
+  //       try {
+  //         // Get a token using client credentials
+  //         const response = await msalClient.acquireTokenByClientCredential({
+  //           scopes: [
+  //             'https://graph.microsoft.com/.default'
+  //             // 'https://graph.microsoft.com/User.Read.All'
+  //           ]
+  //         })
+  //         if (!response) return done(new Error('Error: No response'), null)
+  //         // First param to callback is the error,
+  //         // Set to null in success case
+  //         done(null, response.accessToken)
+  //       } catch (err) {
+  //         console.log(JSON.stringify(err, Object.getOwnPropertyNames(err)))
+  //         done(err, null)
+  //       }
+  //     }
+  //   })
+
+  //   if (query && query.validationToken) {
+  //     res.setHeader('Content-Type', 'text/plain')
+  //     res.status(201).send(query.validationToken)
+  //     return
+  //   }
+
+  //   const JWKS = createRemoteJWKSet(
+  //     new URL('https://login.microsoftonline.com/common/discovery/v2.0/keys')
+  //   )
+
+  //   // Check for validation tokens, validate them if present
+  //   let areTokensValid = true
+
+  //   if (body.validationTokens) {
+  //     console.log('Webhook ~ body.validationTokens:', body.validationTokens)
+  //     const appId = process.env.OAUTH_CLIENT_ID!
+  //     const tenantId = process.env.OAUTH_TENANT_ID
+
+  //     const { payload, protectedHeader } = await jwtVerify(
+  //       body.validationTokens[0],
+  //       JWKS,
+  //       {
+  //         audience: [appId],
+  //         issuer: [`https://sts.windows.net/${tenantId}/`]
+  //       }
+  //     )
+  //     console.log('Webhook ~ payload:', payload)
+  //     console.log('Webhook ~ protectedHeader:', protectedHeader)
+
+  //     // const validationResults = await Promise.all(
+  //     //   body.validationTokens.map((token) =>
+  //     //     tokenHelper.isTokenValid(token, appId, tenantId)
+  //     //   )
+  //     // )
+
+  //     // areTokensValid = validationResults.reduce((x, y) => x && y)
+  //   }
+
+  //   if (!body.value) {
+  //     res.status(202).end()
+  //     return
+  //   }
+  //   for (let i = 0; i < body.value.length; i++) {
+  //     const notification = body.value[i]
+
+  //     // // Verify we have a matching subscription record in the database
+  //     // const subscription = await dbHelper.getSubscription(
+  //     //   notification.subscriptionId
+  //     // )
+  //     // if (subscription) {
+  //     //   // If notification has encrypted content, process that
+  //     //   if (notification.encryptedContent) {
+  //     //     processEncryptedNotification(notification)
+  //     //   } else {
+  //     //     await processNotification(
+  //     //       notification,
+  //     //       req.app.locals.msalClient,
+  //     //       subscription.userAccountId
+  //     //     )
+  //     //   }
+  //     // }
+
+  //     //////////////////////
+  //     console.log('Webhook ~ notification:', t, notification.changeType)
+  //     client
+  //       .api(
+  //         `/users/hieuptm@iceteasoftware.com/events/${notification.resourceData?.['id']}?$select=subject,organizer,attendees,start,end,location`
+  //       )
+  //       .get((err, res) => {
+  //         if (err) {
+  //           console.log(123, err)
+  //           return
+  //         }
+  //         console.log(t, res.subject, res.status, res.attendees)
+  //         // const events: Event[] = res.value
+  //         // console.log(events)
+  //       })
+  //       .catch((err) => {
+  //         console.log(456, err)
+  //       })
+  //   }
+
+  //   res.status(202).end()
+  // }
+
+  // @Post('microsoft/lifecycle')
+  // async index3(@Query() query: any, @Res() res: Response) {
+  //   if (query && query.validationToken) {
+  //     res.setHeader('Content-Type', 'text/plain')
+  //     res.status(201).send(query.validationToken)
+  //     return
+  //   }
+  // }
 }
