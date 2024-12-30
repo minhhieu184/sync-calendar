@@ -7,29 +7,39 @@ export class TestService {
   // constructor(private readonly googleAuth: GoogleAuth) {}
 
   async onModuleInit1() {
+    // const calendar = googleCalendar('tung.cong@icetea.io')
+
     const auth = new google.auth.GoogleAuth({
-      // keyFile: 'credentials.json',
-      clientOptions: { subject: 'hieu.pham1@icetea.io' },
+      clientOptions: { subject: '' },
       scopes: [
         'https://www.googleapis.com/auth/calendar.readonly',
-        'https://www.googleapis.com/auth/calendar.events'
+        'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/admin.directory.user.readonly'
       ]
     })
     google.options({ auth })
-    const calendar = google.calendar('v3')
+    const {
+      data: { users }
+    } = await google.admin('directory_v1').users.list({ domain: 'icetea.io' })
+    console.log('TestService ~ onModuleInit ~ user:', users?.length)
+    console.log('TestService ~ onModuleInit ~ user:', users?.[20])
+    // const user2 = await google
+    //   .admin('directory_v1')
+    //   .users.get({ userKey: 'tung.cong@icetea.io' })
+    // console.log('TestService ~ onModuleInit ~  user2:', user2.data)
 
     // await this.removeChannel(calendar, 'rgWTXZdT9XrruVSe1k-VA06n6eM')
     // await this.createChannel(calendar)
 
-    const events = await calendar.events.list({
-      calendarId: 'primary'
-      // maxResults: 10,
-      // singleEvents: true,
-      // orderBy: 'startTime',
-      // pageToken:
-      //   'CkAKMAouCgwIka-_ugYQwLvZsAISHgocChoxa2xkcW91M21vMGZ1Y3Y3NGloczViZ2lrZRoMCJGvv7oGEMC72bACwD4B',
-      // syncToken: 'CJjE6JKGkIoDEJjE6JKGkIoDGAUggtmOzgIogtmOzgI='
-    })
+    // const events = await calendar.events.list({
+    //   calendarId: 'primary'
+    //   // maxResults: 10,
+    //   // singleEvents: true,
+    //   // orderBy: 'startTime',
+    //   // pageToken:
+    //   //   'CkAKMAouCgwIka-_ugYQwLvZsAISHgocChoxa2xkcW91M21vMGZ1Y3Y3NGloczViZ2lrZRoMCJGvv7oGEMC72bACwD4B',
+    //   // syncToken: 'CJjE6JKGkIoDEJjE6JKGkIoDGAUggtmOzgIogtmOzgI='
+    // })
     // console.log(
     //   'TestService ~ onModuleInit1 ~ events: ',
     //   events.data.items?.length
@@ -43,8 +53,8 @@ export class TestService {
     //     members: item.attendees?.map((attendee) => attendee.email)
     //   }))
     // )
-    console.log(events.data.items?.[0])
-    console.log(events.data.items?.[1])
+    // console.log(events.data.items?.[0])
+    // console.log(events.data.items?.[1])
 
     // const ss = events.data.items?.filter(
     //   (item) => item.summary === '[ITS] BUSINESS MANNER'
@@ -69,8 +79,8 @@ export class TestService {
         id: 'SyncCalendarIceTea',
         type: 'web_hook',
         address:
-          'https://93d2-27-72-88-206.ngrok-free.app/api/v1/webhook/google',
-        expiration: '1735529795000'
+          'https://e8b1-27-72-88-206.ngrok-free.app/api/v1/webhook/google',
+        expiration: '1924915750000'
       }
     })
   }

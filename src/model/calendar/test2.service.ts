@@ -1,4 +1,3 @@
-import { ConfidentialClientApplication, LogLevel } from '@azure/msal-node'
 import { Client } from '@microsoft/microsoft-graph-client'
 import { Subscription } from '@microsoft/microsoft-graph-types'
 import { User } from '@model/db/entity'
@@ -7,56 +6,42 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { Repository } from 'typeorm'
+import { MSAuthService } from './ms-auth.service'
 
 @Injectable()
 export class TestService2 {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>
+    @InjectRepository(User) private usersRepository: Repository<User>,
+    private readonly msAuthService: MSAuthService
   ) {}
 
-  async onModuleInit() {
-    const user
+  async onModuleInit2() {
+    /**
+     {
+    businessPhones: [],
+    displayName: 'Hoang Thu Huong',
+    givenName: 'Huong',
+    jobTitle: null,
+    mail: 'huonght@iceteasoftware.com',
+    mobilePhone: null,
+    officeLocation: null,
+    preferredLanguage: null,
+    surname: 'Hoang Thu',
+    userPrincipalName: 'huonght@iceteasoftware.com',
+    id: '3151b3ac-0ab6-4525-988a-95af2a1bcad3'
+  },
 
-    // Create msal application object
-    const msalClient = new ConfidentialClientApplication({
-      auth: {
-        clientId: process.env.OAUTH_CLIENT_ID || '',
-        authority: `${process.env.OAUTH_AUTHORITY}/${process.env.OAUTH_TENANT_ID}`,
-        clientSecret: process.env.OAUTH_CLIENT_SECRET
-      },
-      system: {
-        loggerOptions: {
-          loggerCallback(logLevel, message, containsPii) {
-            console.log(message)
-          },
-          piiLoggingEnabled: false,
-          logLevel: LogLevel.Error
-        }
-      }
-    })
+  
+     */
 
-    const client = Client.init({
-      // Implement an auth provider that gets a token
-      // from the app's MSAL instance
-      authProvider: async (done) => {
-        try {
-          // Get a token using client credentials
-          const response = await msalClient.acquireTokenByClientCredential({
-            scopes: [
-              'https://graph.microsoft.com/.default'
-              // 'https://graph.microsoft.com/User.Read.All'
-            ]
-          })
-          if (!response) return done(new Error('Error: No response'), null)
-          // First param to callback is the error,
-          // Set to null in success case
-          done(null, response.accessToken)
-        } catch (err) {
-          console.log(JSON.stringify(err, Object.getOwnPropertyNames(err)))
-          done(err, null)
-        }
-      }
-    })
+    // client.api('/users').get((err, res) => {
+    //   if (err) {
+    //     console.log(err)
+    //     return
+    //   }
+    //   const events: Event[] = res.value
+    //   console.log(events)
+    // })
 
     // client.api('/users/hieuptm@iceteasoftware.com/events').get((err, res) => {
     //   if (err) {
@@ -91,18 +76,19 @@ export class TestService2 {
     // this.craeteSubscription(client)
     // this.deleteSubscription(client, '8e4220fb-de87-4ed9-a4b4-0a72eac85ed2')
 
-    // setTimeout(() => {
-    //   client.api('/users/hieuptm@iceteasoftware.com/events').post(
+    // this.msAuthService.client
+    //   .api('/users/hieuptm@iceteasoftware.com/events')
+    //   .post(
     //     {
-    //       subject: '4 [ITS] - TLG MA Kick off', // summary
+    //       subject: '7 [ITS] - TLG MA Kick off', // summary
     //       start: {
     //         // start
-    //         dateTime: '2024-12-07T05:09:09.390Z',
+    //         dateTime: '2024-12-14T06:09:09.390Z',
     //         timeZone: 'SE Asia Standard Time'
     //       },
     //       end: {
     //         // end
-    //         dateTime: '2024-12-07T06:09:09.390Z',
+    //         dateTime: '2024-12-14T07:09:09.390Z',
     //         timeZone: 'SE Asia Standard Time'
     //       },
     //       body: {
@@ -117,21 +103,24 @@ export class TestService2 {
     //       },
     //       attendees: [
     //         // attendees
-    //         {
-    //           emailAddress: {
-    //             address: 'hud.17.hoptac@iceteasoftware.com'
-    //           }
-    //         },
-    //         {
-    //           emailAddress: {
-    //             address: 'vietnx@iceteasoftware.com'
-    //           }
-    //         }
+    //         // {
+    //         //   emailAddress: {
+    //         //     address: 'hud.17.hoptac@iceteasoftware.com'
+    //         //   }
+    //         // },
+    //         // {
+    //         //   emailAddress: {
+    //         //     // address: 'vietnx@iceteasoftware.com'
+    //         //     // address: 'hieu.pham1@icetea.io'
+    //         //     address: 'hieuptm@iceteasoftware.com'
+    //         //   }
+    //         // }
     //       ],
     //       organizer: {
     //         // organizer
     //         emailAddress: {
-    //           address: 'hieuptm@iceteasoftware.com'
+    //           // address: 'hieuptm@iceteasoftware.com'
+    //           // address: 'hieu.pham1@icetea.io'
     //         }
     //       }
     //     },
@@ -144,7 +133,16 @@ export class TestService2 {
     //       console.log('TestService2 ~ onModuleInit1 ~ e:', e)
     //     }
     //   )
-    // }, 3000)
+
+    this.msAuthService.client
+      .api('/users/hieuptm@iceteasoftware.com/events/AAMkADJjZDU2ZjBjLTZhMjYtNDBjNi1hODdjLTk3YzNlYjIzNzhjMQBGAAAAAABctjrNcyOnRonD6-bYAnm_BwD8P1AQgp-TQbalFbho4vdGAAAAAAENAAD8P1AQgp-TQbalFbho4vdGAACdYTwDAAA=')
+      .delete((err, res) => {
+        if (err) {
+          console.log(err)
+          return
+        }
+        console.log('TestService2 ~ onModuleInit ~ res:', res)
+      })
   }
 
   async craeteSubscription(client: Client) {
