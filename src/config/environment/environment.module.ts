@@ -9,7 +9,7 @@ import { EnvironmentService } from './environment.service'
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: getEnvPath(process.env.NODE_ENV),
+      // envFilePath: getEnvPath(process.env.NODE_ENV),
       cache: true,
       expandVariables: true,
       validate: (config) => envSchema.parse(config)

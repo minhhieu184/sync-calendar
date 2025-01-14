@@ -1,42 +1,34 @@
-version: '3.8'
-
 services:
-  # db:
-  #   container_name: starter-db
-  #   image: mysql:8.0
-  #   volumes:
-  #     - starter-db:/var/lib/mysql
-  #     - ./src/config/my.cnf:/etc/mysql/conf.d/my.cnf
-  #     - ./logs:/var/log/mysql
-  #   environment:
-  #     - MYSQL_USER=$DB_USERNAME
-  #     - MYSQL_PASSWORD=$DB_PASSWORD
-  #     - MYSQL_ROOT_PASSWORD=$DB_ROOT_PASSWORD
-  #     - MYSQL_DATABASE=$DB_DATABASE
-  #     - TZ=Asia/Tokyo
-  #   ports:
-  #     - '${DB_FORWARD_PORT}:3306'
-  #   restart: always
-
   db:
-    container_name: starter-db
+    container_name: sync-calendar-db
     image: postgres:15
-    user: postgres
+    env_file:
+      - .env
     ports:
       - '${DB_FORWARD_PORT}:${POSTGRES_PORT}'
     volumes:
-      - starter-db:/var/lib/postgresql/data
+      - sync-calendar-db:/var/lib/postgresql/data
 
-  starter:
+  sync-calendar:
     depends_on:
       - db
-    container_name: starter-server
-    build:
-      context: .
-      dockerfile: Dockerfile.stg
     restart: always
+    container_name: sync-calendar-server
+    image: mh184/sync-calendar
+    env_file:
+      - .env.stg
     ports:
       - '${PORT}:${PORT}'
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 900M
+        reservations:
+          cpus: 0.5
+          memory: 256M
+    volumes:
+      - ./secret:/app/dist/secret:ro
 
 volumes:
-  starter-db:
+  sync-calendar-db:

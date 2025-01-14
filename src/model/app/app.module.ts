@@ -1,7 +1,6 @@
 import { AxiosModule } from '@config/axios/axios.module'
 import { EnvironmentModule, EnvironmentService } from '@config/environment'
 import { CalendarModule } from '@model/calendar/calendar.module'
-import { GoogleModule } from '@model/google/google.module'
 import { Module } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import { ServeStaticModule } from '@nestjs/serve-static'
@@ -33,7 +32,6 @@ import { AppService } from './app.service'
       })
     }),
     /** MODEL */
-    GoogleModule,
     CalendarModule
   ],
   controllers: [AppController],

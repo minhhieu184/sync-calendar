@@ -1,9 +1,6 @@
-import { googleAuth } from '@common'
 import { Event } from '@microsoft/microsoft-graph-types'
-import { GoogleEventService } from '@model/calendar/google-event.service'
 import { MSAuthService } from '@model/calendar/ms-auth.service'
 import { GaxiosError } from 'gaxios'
-import { google } from 'googleapis'
 
 async function main() {
   const client = new MSAuthService().client

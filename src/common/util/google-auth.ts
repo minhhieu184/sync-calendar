@@ -1,15 +1,10 @@
-import { GoogleAuth } from '@model/google/google.service'
-import { calendar_v3, google } from 'googleapis'
-
-export function googleCalendar(): calendar_v3.Calendar {
-  return google.calendar('v3')
-}
+import { google } from 'googleapis'
 
 /**
  * @param behalfOf user email to act on behalf of
  * If not provided, the service account will act on its own behalf
  */
-export function googleAuth(behalfOf?: string): GoogleAuth {
+export function googleAuth(behalfOf?: string) {
   return new google.auth.GoogleAuth({
     clientOptions: { subject: behalfOf },
     scopes: [

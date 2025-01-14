@@ -1,7 +1,6 @@
 import { googleAuth } from '@common'
-import { CreateMicrosoftEventDto } from '@model/calendar/microsoft-event.service'
 import { default as DataSource } from '@model/db/data-source'
-import { Event, GoogleRoom, Workspace } from '@model/db/entity'
+import { Event, GoogleRoom } from '@model/db/entity'
 import { GaxiosError } from 'gaxios'
 import { google } from 'googleapis'
 import { getAllEmailsInWorkspace } from './watch-google-calendar'
@@ -35,35 +34,35 @@ async function main() {
   const isExistInDb = await eventRepository.exists({
     where: { workspaceEventId: googleEvent.id }
   })
-  if (!isExistInDb) {
-    const createEventDto = new CreateMicrosoftEventDto(
-      googleEvent,
-      microsoftRooms
-    )
-    createEventDto.summary = `[ITS_SYNC] ${createEventDto.summary}`
-    createEventDto.description = createEventDto.organizer
-    const msEvent = await this.msEventService.create(
-      microsoftRooms[0].email,
-      createEventDto
-    )
-    console.log('create event in db and ms event')
-    const event = new Event()
-    event.workspace = Workspace.GOOGLE
-    event.workspaceEventId = googleEvent.id || ''
-    event.summary = createEventDto.summary
-    event.description = createEventDto.description
-    event.organizer = createEventDto.organizer
-    event.start = createEventDto.start
-    event.end = createEventDto.end
-    const roomEvent = new RoomEvent()
-    console.log('create roomEvent:', roomEvent)
-    roomEvent.event = event
-    roomEvent.workspace = Workspace.MICROSOFT
-    roomEvent.workspaceEventId = msEvent.id || ''
-    roomEvent.roomEmails = createEventDto.rooms.map((room) => room.email)
-    event.roomEvents = [roomEvent]
-    await eventRepository.save(event)
-  }
+  // if (!isExistInDb) {
+  //   const createEventDto = new CreateMicrosoftEventDto(
+  //     googleEvent,
+  //     microsoftRooms
+  //   )
+  //   createEventDto.summary = `[ITS_SYNC] ${createEventDto.summary}`
+  //   createEventDto.description = createEventDto.organizer
+  //   const msEvent = await this.msEventService.create(
+  //     microsoftRooms[0].email,
+  //     createEventDto
+  //   )
+  //   console.log('create event in db and ms event')
+  //   const event = new Event()
+  //   event.workspace = Workspace.GOOGLE
+  //   event.workspaceEventId = googleEvent.id || ''
+  //   event.summary = createEventDto.summary
+  //   event.description = createEventDto.description
+  //   event.organizer = createEventDto.organizer
+  //   event.start = createEventDto.start
+  //   event.end = createEventDto.end
+  //   const roomEvent = new RoomEvent()
+  //   console.log('create roomEvent:', roomEvent)
+  //   roomEvent.event = event
+  //   roomEvent.workspace = Workspace.MICROSOFT
+  //   roomEvent.workspaceEventId = msEvent.id || ''
+  //   roomEvent.roomEmails = createEventDto.rooms.map((room) => room.email)
+  //   event.roomEvents = [roomEvent]
+  //   await eventRepository.save(event)
+  // }
 
   // đã có trong db
   //    => có update không

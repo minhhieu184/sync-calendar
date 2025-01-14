@@ -26,9 +26,8 @@ RUN chown -R node:node /app
 COPY --chown=node:node --from=base_dependencies /app/node_modules ./node_modules
 COPY --chown=node:node --from=base_dependencies /app/package.json ./package.json
 COPY --chown=node:node --from=builder /app/dist ./dist
-COPY --chown=node:node --from=builder /app/prisma ./prisma
-COPY --chown=node:node --from=builder /app/.env.stg ./.env.stg
 
 USER node
+RUN ls -la
 
 CMD ["yarn", "start:stg"]

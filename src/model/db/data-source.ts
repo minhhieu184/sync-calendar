@@ -1,5 +1,7 @@
 import { DataSource } from 'typeorm'
 
+const dir = process.env.NODE_ENV === 'development' ? 'src' : 'dist'
+
 export default new DataSource({
   type: 'postgres',
   host: process.env.POSTGRES_HOST,
@@ -7,7 +9,7 @@ export default new DataSource({
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
-  entities: ['src/model/db/entity/*.entity.ts'],
   synchronize: false,
-  migrations: ['src/model/db/migration/**/*{.ts,.js}']
+  entities: [`${dir}/**/entity/*.entity.{ts,js}`],
+  migrations: [`${dir}/**/migration/**/*{.ts,.js}`]
 })

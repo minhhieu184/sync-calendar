@@ -1,9 +1,8 @@
-import { googleAuth, googleCalendar } from '@common'
+import { googleAuth } from '@common'
 import { default as DataSource } from '@model/db/data-source'
 import { GoogleEventChannel } from '@model/db/entity'
-import { GoogleAuth } from '@model/google/google.service'
 import { GaxiosError } from 'gaxios'
-import { calendar_v3 } from 'googleapis'
+import { Auth, calendar_v3, google } from 'googleapis'
 import { LessThan } from 'typeorm'
 
 /**
@@ -15,7 +14,7 @@ import { LessThan } from 'typeorm'
 async function main() {
   const THRESHOLD_EXPIRED_AT = new Date(Date.now() + 115 * 24 * 60 * 60 * 1000) // 5 days
 
-  const calendar = googleCalendar()
+  const calendar = google.calendar('v3')
   await DataSource.initialize()
   const eventChannelRepository = DataSource.getRepository(GoogleEventChannel)
 
@@ -146,7 +145,7 @@ async function createChannel(calendar: calendar_v3.Calendar, email: string) {
 }
 
 async function removeChannel(
-  auth: GoogleAuth,
+  auth: Auth.GoogleAuth,
   calendar: calendar_v3.Calendar,
   resourceId: string
 ) {
