@@ -24,7 +24,6 @@ async function main() {
   const setAllMails = new Set(allMails)
 
   const subscriptions = await getSubscriptionsWithMail(client)
-  console.log('main ~ subscriptions:', subscriptions)
 
   const { needToRemoveSubs, needToRenewSubs, restSubs } = subscriptions.reduce<{
     needToRemoveSubs: SubscriptionWithMail[]
@@ -69,7 +68,9 @@ async function main() {
 
   // Create channels for new emails
   const currentSubscriptions = [...restSubs, ...needToRenewSubs]
-  const setSubscriptionMail = new Set(currentSubscriptions.map(({ mail }) => mail))
+  const setSubscriptionMail = new Set(
+    currentSubscriptions.map(({ mail }) => mail)
+  )
   const newMails = allMails.filter((mail) => !setSubscriptionMail.has(mail))
   await Promise.all(newMails.map((mail) => createSubscription(client, mail)))
 }
@@ -98,24 +99,14 @@ async function getSubscriptionsWithMail(
     .value as Subscription[]
   return subscriptionsWithoutMail.reduce<SubscriptionWithMail[]>(
     (acc, subscription) => {
+      if (subscription.encryptionCertificateId !== process.env.CERTIFICATE_ID)
+        return acc
       if (!subscription.resource) return acc
       const mail = subscription.resource.split('/')[1]
       if (!mail) return acc
       return [...acc, { ...subscription, mail }]
     },
     []
-  )
-}
-
-function getInactiveSubscriptions(
-  subscriptions: SubscriptionWithMail[],
-  setAllMails: Set<string>
-) {
-  return subscriptions.filter(
-    ({ expirationDateTime, mail }) =>
-      expirationDateTime &&
-      new Date(expirationDateTime) < THRESHOLD_EXPIRED_AT &&
-      setAllMails.has(mail)
   )
 }
 
@@ -139,8 +130,6 @@ async function createSubscription(client: Client, mail: string) {
     notificationUrl: `${process.env.WEBHOOK_DOMAIN}/api/v1/webhook/microsoft?email=${mail}`,
     // lifecycleNotificationUrl: `${process.env.WEBHOOK_DOMAIN}/api/v1/webhook/microsoft/lifecycle`,
     resource: `users/${mail}/events?$select=id,subject,organizer,attendees,start,end,isCancelled,isDraft`,
-    // resource:
-    //   'users/${email}/events?$select=subject,body,organizer,attendees,start,end,location',
     includeResourceData: true,
     encryptionCertificate: certHelper.getSerializedCertificate(
       process.env.CERTIFICATE_PATH!

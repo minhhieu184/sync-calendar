@@ -3,6 +3,7 @@ import {
   GoogleEventChannel,
   GoogleRoom,
   MicrosoftRoom,
+  Room,
   RoomEvent,
   Workspace
 } from '@model/db/entity'
@@ -23,6 +24,8 @@ export class GoogleWebhookHandler {
     private eventChannelRepository: Repository<GoogleEventChannel>,
     @InjectRepository(Event)
     private eventRepository: Repository<Event>,
+    @InjectRepository(Room)
+    private roomRepository: Repository<Room>,
     @InjectRepository(MicrosoftRoom)
     private microsoftRoomRepository: Repository<MicrosoftRoom>,
     @InjectRepository(GoogleRoom)
@@ -92,7 +95,7 @@ export class GoogleWebhookHandler {
     const roomEvent = eventInDb.roomEvents.find(
       ({ workspace }) => workspace === Workspace.MICROSOFT
     )
-    console.log('undetele ~ roomEvent:', roomEvent)
+    console.log('un detele ~ roomEvent:', roomEvent)
     if (!roomEvent) return
     const microsoftRooms = await this.microsoftRoomRepository.find({
       where: { email: In(roomEvent.roomEmails) }
@@ -104,7 +107,7 @@ export class GoogleWebhookHandler {
       roomEvent.roomEmails[0],
       createEventDto
     )
-    console.log('recrete ms event', msEvent.id)
+    console.log('recreate ms event', msEvent.id)
 
     // update workspaceEventId của room event in DB
     await this.roomEventRepository.update(
@@ -229,7 +232,7 @@ export class GoogleWebhookHandler {
   }
 
   async createEvent(googleEvent: calendar_v3.Schema$Event) {
-    console.log('event not In Db')
+    console.log('event not In Db => create event')
     const microsoftRoomPromises = googleEvent.attendees?.reduce<
       Promise<MicrosoftRoom | null>[]
     >((acc, { email, resource }) => {
@@ -277,13 +280,21 @@ export class GoogleWebhookHandler {
     await this.eventRepository.save(event)
   }
 
-  async #getMicrosoftRoomByGoogleEmail(email: string) {
+  async #getMicrosoftRoomByGoogleEmail(
+    email: string
+  ): Promise<MicrosoftRoom | null> {
     const googleRoom = await this.googleRoomRepository.findOne({
       where: { email }
     })
     if (!googleRoom) return null
-    return this.microsoftRoomRepository.findOne({
-      where: { name: googleRoom.name }
+    const room = await this.roomRepository.findOne({
+      where: { id: googleRoom.entityId }
     })
+    if (!room) return null
+    return (
+      room.rooms.find(
+        (workspaceRoom) => workspaceRoom instanceof MicrosoftRoom
+      ) || null
+    )
   }
 }

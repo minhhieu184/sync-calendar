@@ -4,13 +4,7 @@ import {
   ChangeNotificationCollection,
   Event as MSEvent
 } from '@microsoft/microsoft-graph-types'
-import {
-  Event,
-  GoogleEventChannel,
-  GoogleRoom,
-  MicrosoftRoom,
-  RoomEvent
-} from '@model/db/entity'
+import { GoogleEventChannel } from '@model/db/entity'
 import { Body, Controller, Headers, Post, Query, Res } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'crypto'
@@ -18,9 +12,7 @@ import { Response } from 'express'
 import { google } from 'googleapis'
 import { Repository } from 'typeorm'
 import { GoogleWebhookHandler } from './google-webhook-handler'
-import { MicrosoftEventService } from './microsoft-event.service'
 import { MicrosoftWebhookHandler } from './microsoft-webhook-handler'
-import { MSAuthService } from './ms-auth.service'
 
 interface CreateSubscriptionQuery {
   validationToken?: string
@@ -32,18 +24,8 @@ export class Webhook {
   constructor(
     private readonly googleWebhookHandler: GoogleWebhookHandler,
     private readonly microsoftWebhookHandler: MicrosoftWebhookHandler,
-    private readonly msAuthService: MSAuthService,
-    private readonly msEventService: MicrosoftEventService,
     @InjectRepository(GoogleEventChannel)
-    private eventChannelRepository: Repository<GoogleEventChannel>,
-    @InjectRepository(Event)
-    private eventRepository: Repository<Event>,
-    @InjectRepository(MicrosoftRoom)
-    private microsoftRoomRepository: Repository<MicrosoftRoom>,
-    @InjectRepository(GoogleRoom)
-    private googleRoomRepository: Repository<GoogleRoom>,
-    @InjectRepository(RoomEvent)
-    private roomEventRepository: Repository<RoomEvent>
+    private eventChannelRepository: Repository<GoogleEventChannel>
   ) {}
 
   @Post('google')

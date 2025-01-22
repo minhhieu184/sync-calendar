@@ -7,6 +7,7 @@ import {
   Event,
   GoogleRoom,
   MicrosoftRoom,
+  Room,
   RoomEvent,
   Workspace
 } from '@model/db/entity'
@@ -31,8 +32,8 @@ export class MicrosoftWebhookHandler {
     private eventRepository: Repository<Event>,
     @InjectRepository(MicrosoftRoom)
     private microsoftRoomRepository: Repository<MicrosoftRoom>,
-    @InjectRepository(GoogleRoom)
-    private googleRoomRepository: Repository<GoogleRoom>
+    @InjectRepository(Room)
+    private roomRepository: Repository<Room>
   ) {}
 
   async handle(endpointEmail: string, notification: ChangeNotification) {
@@ -169,11 +170,20 @@ export class MicrosoftWebhookHandler {
     }, 5000)
   }
 
-  async #getGoogleRoomByMicrosoftEmail(email: string) {
+  async #getGoogleRoomByMicrosoftEmail(
+    email: string
+  ): Promise<GoogleRoom | null> {
     const msRoom = await this.microsoftRoomRepository.findOne({
       where: { email }
     })
     if (!msRoom) return null
-    return this.googleRoomRepository.findOne({ where: { name: msRoom.name } })
+    const room = await this.roomRepository.findOne({
+      where: { id: msRoom.entityId }
+    })
+    if (!room) return null
+    return (
+      room.rooms.find((workspaceRoom) => workspaceRoom instanceof GoogleRoom) ||
+      null
+    )
   }
 }

@@ -4,7 +4,7 @@ import {
   Event as MSEvent,
   NullableOption
 } from '@microsoft/microsoft-graph-types'
-import { Room } from '@model/db/entity'
+import { WorkspaceRoom } from '@model/db/entity'
 import { Injectable } from '@nestjs/common'
 import { calendar_v3, google } from 'googleapis'
 
@@ -14,9 +14,9 @@ export class CreateGoogleEventDto {
   summary: string
   description: string
   organizer: string
-  rooms: Room[] = []
+  rooms: WorkspaceRoom[] = []
 
-  constructor(item: MSEvent, rooms: Room[]) {
+  constructor(item: MSEvent, rooms: WorkspaceRoom[]) {
     this.start = this.#eventDateTimeToDate(item.start)
     this.end = this.#eventDateTimeToDate(item.end)
     this.summary = item.subject || ''

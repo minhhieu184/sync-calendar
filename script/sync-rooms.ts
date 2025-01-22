@@ -1,3 +1,5 @@
+/** DEPRECATED */
+
 import { googleAuth } from '@common'
 import { EmailAddress } from '@microsoft/microsoft-graph-types'
 import { MSAuthService } from '@model/calendar/ms-auth.service'
@@ -35,9 +37,10 @@ async function syncGoogleRooms() {
     },
     []
   )
-  await googleRoomRepository.upsert(googleRooms, {
-    conflictPaths: { email: true }
-  })
+  console.log('syncGoogleRooms ~ googleRooms:', googleRooms)
+  // await googleRoomRepository.upsert(googleRooms, {
+  //   conflictPaths: { email: true }
+  // })
 }
 
 async function syncMicrosoftRooms() {
@@ -53,9 +56,10 @@ async function syncMicrosoftRooms() {
     },
     []
   )
-  await microsoftRoomRepository.upsert(microsoftRooms, {
-    conflictPaths: { email: true }
-  })
+  console.log('syncMicrosoftRooms ~ microsoftRooms:', microsoftRooms)
+  // await microsoftRoomRepository.upsert(microsoftRooms, {
+  //   conflictPaths: { email: true }
+  // })
 }
 
 function getMicrosoftRooms() {

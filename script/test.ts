@@ -1,11 +1,16 @@
 import { Client } from '@microsoft/microsoft-graph-client'
 import { Subscription } from '@microsoft/microsoft-graph-types'
-import { MSAuthService } from '@model/calendar/ms-auth.service'
 import { default as DataSource } from '@model/db/data-source'
-import { Event, RoomEvent } from '@model/db/entity'
+import {
+  Event,
+  GoogleRoomRepository,
+  MicrosoftRoom,
+  RoomEvent,
+  RoomRepository
+} from '@model/db/entity'
 import { GaxiosError } from 'gaxios'
 import { noop } from 'rxjs'
-import { IsNull } from 'typeorm'
+import { AbstractPolymorphicRepository } from 'typeorm-polymorphic'
 
 /**
  *
@@ -18,21 +23,33 @@ async function main() {
   const eventRepository = DataSource.getRepository(Event)
   const roomEventRepository = DataSource.getRepository(RoomEvent)
 
-  const msauth = new MSAuthService()
-  const client = msauth.client
-
-  // const subscriptions = await listSubscription(client)
-  // console.log('main ~ subscriptions:', subscriptions)
-  // // remove all exept the last one
-  // await Promise.all(
-  //   subscriptions
-  //     // .slice(0, -1)
-  //     .map((sub) => deleteSubscription(client, sub.id || ''))
+  const googleRoomRepository: GoogleRoomRepository =
+    AbstractPolymorphicRepository.createRepository(
+      DataSource,
+      GoogleRoomRepository
+    )
+  const roomRepository: RoomRepository =
+    AbstractPolymorphicRepository.createRepository(DataSource, RoomRepository)
+  // const room = await roomRepository.save(
+  //   roomRepository.create({ name: 'room' })
   // )
 
-  ///////////////////////
-  const sdf = IsNull()
-  console.log('main ~ sdf:', sdf)
+  // const email = 'c_188c3b1vutsd6ilgm07i10026sg84@resource.calendar.google.com'
+  const email = 'c_18803s0g6f9gogf6mm5avs3tp5tlm@resource.calendar.google.com'
+  const googleRoom = await googleRoomRepository.findOne({
+    where: { email }
+  })
+  console.log('main ~ googleRoom:', googleRoom)
+  if (!googleRoom) return null
+  let room = await roomRepository.findOne({
+    where: { id: googleRoom.entityId }
+  })
+  console.log('main ~ room:', room)
+  if (!room) return null
+  const microsoftRoom = room.rooms.find(
+    (workspaceRoom) => workspaceRoom instanceof MicrosoftRoom
+  )
+  console.log('main ~ microsoftRoom:', microsoftRoom)
 }
 
 async function listSubscription(client: Client) {

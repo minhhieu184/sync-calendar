@@ -1,5 +1,13 @@
-import { Column, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  AbstractPolymorphicRepository,
+  PolymorphicChildren,
+  PolymorphicRepository
+} from 'typeorm-polymorphic'
+import { GoogleRoom } from './google-room.entity'
+import { MicrosoftRoom } from './microsoft-room.entity'
 
+@Entity()
 export class Room {
   @PrimaryGeneratedColumn()
   id: number
@@ -7,6 +15,9 @@ export class Room {
   @Column({ unique: true })
   name: string
 
-  @Column({ unique: true })
-  email: string
+  @PolymorphicChildren(() => [GoogleRoom, MicrosoftRoom])
+  rooms: (GoogleRoom | MicrosoftRoom)[]
 }
+
+@PolymorphicRepository(Room)
+export class RoomRepository extends AbstractPolymorphicRepository<Room> {}

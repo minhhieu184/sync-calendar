@@ -5211,6 +5211,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
 
+"typeorm-polymorphic@https://github.com/minhhieu184/typeorm-polymorphic.git#master":
+  version "1.0.0"
+  resolved "https://github.com/minhhieu184/typeorm-polymorphic.git#5c2faa34620c01eb6c738391f443075faa59630d"
+
 typeorm@^0.3.20:
   version "0.3.20"
   resolved "https://registry.yarnpkg.com/typeorm/-/typeorm-0.3.20.tgz#4b61d737c6fed4e9f63006f88d58a5e54816b7ab"

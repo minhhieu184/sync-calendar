@@ -5,6 +5,8 @@ import { GaxiosError } from 'gaxios'
 import { Auth, calendar_v3, google } from 'googleapis'
 import { LessThan } from 'typeorm'
 
+const channelId = process.env.GOOGLE_CHANNEL_ID || ''
+
 /**
  *
  * This script is used to watch google calendar for all users in the domain
@@ -14,6 +16,10 @@ import { LessThan } from 'typeorm'
 async function main() {
   const THRESHOLD_EXPIRED_AT = new Date(Date.now() + 115 * 24 * 60 * 60 * 1000) // 5 days
 
+  if (!channelId) {
+    console.error('❌ Missing GOOGLE_CHANNEL_ID')
+    return
+  }
   const calendar = google.calendar('v3')
   await DataSource.initialize()
   const eventChannelRepository = DataSource.getRepository(GoogleEventChannel)
@@ -54,17 +60,18 @@ async function main() {
     }))
   )
 
-  //! Fix this: For testing purpose
   const nextSyncTokens = await Promise.all(
-    createChannelEmails.map(async (email) => {
+    createChannelEmails.map<Promise<string>>(async (email) => {
       const auth = googleAuth(email)
-      const {
-        data: { nextSyncToken }
-      } = await calendar.events.list({
-        calendarId: 'primary',
-        auth,
-        maxResults: 2500
-      })
+      let nextSyncToken: string | null | undefined = null
+      while (!nextSyncToken) {
+        const { data } = await calendar.events.list({
+          calendarId: 'primary',
+          auth,
+          maxResults: 2500
+        })
+        nextSyncToken = data.nextSyncToken
+      }
       return nextSyncToken
     })
   )
@@ -76,7 +83,7 @@ async function main() {
       const channel = new GoogleEventChannel()
       channel.email = createChannelEmails[index]
       channel.expiredAt = new Date(+(data.expiration || 0))
-      channel.channelId = 'SyncCalendarIceTea2'
+      channel.channelId = channelId
       channel.resourceId = data.resourceId
       channel.syncToken = nextSyncTokens[index] || ''
       acc.push(channel)
@@ -132,7 +139,7 @@ async function createChannel(calendar: calendar_v3.Calendar, email: string) {
       auth: googleAuth(email),
       calendarId: 'primary',
       requestBody: {
-        id: 'SyncCalendarIceTea2',
+        id: channelId,
         type: 'webhook',
         address: `${process.env.WEBHOOK_DOMAIN}/api/v1/webhook/google?email=${email}`,
         expiration: (Date.now() + 30 * 24 * 60 * 60 * 1000).toString()
@@ -151,7 +158,7 @@ async function removeChannel(
 ) {
   return calendar.channels.stop({
     auth,
-    requestBody: { id: 'SyncCalendarIceTea2', resourceId }
+    requestBody: { id: channelId, resourceId }
   })
 }
 

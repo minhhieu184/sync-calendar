@@ -1,6 +1,5 @@
 import { Client } from '@microsoft/microsoft-graph-client'
 import { Subscription } from '@microsoft/microsoft-graph-types'
-import { User } from '@model/db/entity'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { readFileSync } from 'fs'
@@ -11,7 +10,6 @@ import { MSAuthService } from './ms-auth.service'
 @Injectable()
 export class TestService2 {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>,
     private readonly msAuthService: MSAuthService
   ) {}
 
