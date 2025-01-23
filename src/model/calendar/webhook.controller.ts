@@ -29,7 +29,7 @@ export class Webhook {
   ) {}
 
   @Post('google')
-  async index(
+  async google(
     @Body() body: any,
     @Headers() headers: any,
     @Query('email') email: string
@@ -63,7 +63,7 @@ export class Webhook {
   }
 
   @Post('microsoft')
-  async index2(
+  async microsoft(
     @Body() body: ChangeNotificationCollection,
     @Query() query: CreateSubscriptionQuery,
     @Res() res: Response
@@ -71,6 +71,8 @@ export class Webhook {
     if (query.validationToken) {
       res.setHeader('Content-Type', 'text/plain')
       res.status(201).send(query.validationToken)
+      console.log('register subscription', query.email)
+
       return
     }
 

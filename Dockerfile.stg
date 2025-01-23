@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package.json yarn.lock ./
 COPY ./prisma ./prisma
+RUN apk add --no-cache git
 RUN yarn install --prod
 
 
@@ -13,6 +14,7 @@ WORKDIR /app
 
 COPY --from=base_dependencies /app/node_modules ./node_modules
 COPY --from=base_dependencies /app/package.json ./package.json
+RUN apk add --no-cache git
 RUN yarn add @nestjs/cli @types/node
 COPY . .
 RUN yarn build

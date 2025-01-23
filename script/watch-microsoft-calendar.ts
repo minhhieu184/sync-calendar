@@ -1,7 +1,9 @@
 import { certHelper } from '@common'
 import { Client } from '@microsoft/microsoft-graph-client'
-import { Subscription } from '@microsoft/microsoft-graph-types'
+import { Subscription, User } from '@microsoft/microsoft-graph-types'
 import { MSAuthService } from '@model/calendar/ms-auth.service'
+import { default as DataSource } from '@model/db/data-source'
+import { MicrosoftRoom } from '@model/db/entity'
 import { GaxiosError } from 'gaxios'
 
 interface SubscriptionWithMail extends Subscription {
@@ -21,9 +23,11 @@ async function main() {
   const client = msAuthService.client
 
   const allMails = await getAllEmailsInWorkspace(client)
+  console.log('main ~ allMails:', allMails.length)
   const setAllMails = new Set(allMails)
 
   const subscriptions = await getSubscriptionsWithMail(client)
+  console.log('main ~ subscriptions:', subscriptions.length)
 
   const { needToRemoveSubs, needToRenewSubs, restSubs } = subscriptions.reduce<{
     needToRemoveSubs: SubscriptionWithMail[]
@@ -57,14 +61,18 @@ async function main() {
   )
 
   // Delete subscriptions
+  console.log('main ~ needToRemoveSubs:', needToRemoveSubs.length)
   await Promise.all(
     needToRemoveSubs.map(({ id }) =>
       client.api(`/subscriptions/${id}`).delete()
     )
   )
+  console.log('done delete')
 
   // Renew about to expire subscriptions
+  console.log('main ~ needToRenewSubs:', needToRenewSubs.length)
   await renewSubscriptions(client, needToRenewSubs)
+  console.log('done renew')
 
   // Create channels for new emails
   const currentSubscriptions = [...restSubs, ...needToRenewSubs]
@@ -72,42 +80,56 @@ async function main() {
     currentSubscriptions.map(({ mail }) => mail)
   )
   const newMails = allMails.filter((mail) => !setSubscriptionMail.has(mail))
-  await Promise.all(newMails.map((mail) => createSubscription(client, mail)))
+  console.log('main ~ newMails:', newMails.length)
+  const response = await Promise.allSettled(
+    newMails.map((mail) => createSubscription(client, mail))
+  )
+  console.log(
+    'create success:',
+    response.filter((r) => r.status === 'fulfilled').length
+  )
 }
 
 async function getAllEmailsInWorkspace(client: Client): Promise<string[]> {
-  // await DataSource.initialize()
-  // const microsoftRoomRepository = DataSource.getRepository(MicrosoftRoom)
-  // const msRooms = await microsoftRoomRepository.find()
-  // const setMSRoom = new Set(msRooms.map(({ email }) => email))
+  // if (process.env.NODE_ENV === 'development')
+  //   return ['hieuptm@iceteasoftware.com', 'vietnx@iceteasoftware.com']
 
-  // const users = (await client.api('/users?$top=999').get()).value as User[]
-  // return users.reduce<string[]>((acc, { mail }) => {
-  //   if (!mail) return acc
-  //   if (!mail.endsWith('@iceteasoftware.com')) return acc
-  //   if (setMSRoom.has(mail)) return acc
-  //   return [...acc, mail]
-  // }, [])
+  await DataSource.initialize()
+  const microsoftRoomRepository = DataSource.getRepository(MicrosoftRoom)
+  const msRooms = await microsoftRoomRepository.find()
+  const setMSRoom = new Set(msRooms.map(({ email }) => email))
 
-  return ['hieuptm@iceteasoftware.com', 'vietnx@iceteasoftware.com']
+  const users = (await client.api('/users?$top=999').get()).value as User[]
+  return users.reduce<string[]>((acc, { mail }) => {
+    if (!mail) return acc
+    if (!mail.endsWith('@iceteasoftware.com')) return acc
+    if (setMSRoom.has(mail)) return acc
+    return [...acc, mail]
+  }, [])
 }
 
 async function getSubscriptionsWithMail(
   client: Client
 ): Promise<SubscriptionWithMail[]> {
-  const subscriptionsWithoutMail = (await client.api('/subscriptions').get())
-    .value as Subscription[]
-  return subscriptionsWithoutMail.reduce<SubscriptionWithMail[]>(
-    (acc, subscription) => {
-      if (subscription.encryptionCertificateId !== process.env.CERTIFICATE_ID)
-        return acc
-      if (!subscription.resource) return acc
-      const mail = subscription.resource.split('/')[1]
-      if (!mail) return acc
-      return [...acc, { ...subscription, mail }]
-    },
-    []
-  )
+  let nextLink = '/subscriptions'
+  const subscriptionsWithoutMail: Subscription[] = []
+  do {
+    const subscriptionResponse = await client.api(nextLink).get()
+    subscriptionsWithoutMail.push(...subscriptionResponse.value)
+    nextLink = subscriptionResponse['@odata.nextLink']
+  } while (nextLink)
+
+  const subscriptionsWithMail = subscriptionsWithoutMail.reduce<
+    SubscriptionWithMail[]
+  >((acc, subscription) => {
+    if (subscription.encryptionCertificateId !== process.env.CERTIFICATE_ID)
+      return acc
+    if (!subscription.resource) return acc
+    const mail = subscription.resource.split('/')[1]
+    if (!mail) return acc
+    return [...acc, { ...subscription, mail }]
+  }, [])
+  return subscriptionsWithMail
 }
 
 async function renewSubscriptions(
@@ -124,7 +146,7 @@ async function renewSubscriptions(
   )
 }
 
-async function createSubscription(client: Client, mail: string) {
+function createSubscription(client: Client, mail: string) {
   const subscription: Subscription = {
     changeType: 'created,updated,deleted',
     notificationUrl: `${process.env.WEBHOOK_DOMAIN}/api/v1/webhook/microsoft?email=${mail}`,

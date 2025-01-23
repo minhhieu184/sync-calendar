@@ -30,7 +30,17 @@ async function main() {
   const inactiveChannels = await eventChannelRepository.find({
     where: { expiredAt: LessThan(THRESHOLD_EXPIRED_AT) }
   })
-  console.log('inactiveChannels ~ inactiveChannels:', inactiveChannels)
+  console.log('inactiveChannels:', inactiveChannels.length)
+
+  ////////////
+  // const sdf = await Promise.allSettled(
+  //   inactiveChannels.map(({ email, resourceId }) =>
+  //     removeChannel(googleAuth(email), calendar, resourceId)
+  //   )
+  // )
+  // console.log(sdf.filter((s) => s.status === 'fulfilled').length);
+  ////////////
+
   const inactiveChannelsNeedToRenew = inactiveChannels.filter(({ email }) =>
     setAllEmails.has(email)
   )
@@ -61,61 +71,72 @@ async function main() {
   )
 
   const nextSyncTokens = await Promise.all(
-    createChannelEmails.map<Promise<string>>(async (email) => {
-      const auth = googleAuth(email)
-      let nextSyncToken: string | null | undefined = null
-      while (!nextSyncToken) {
-        const { data } = await calendar.events.list({
-          calendarId: 'primary',
-          auth,
-          maxResults: 2500
-        })
-        nextSyncToken = data.nextSyncToken
+    createChannelEmails.map<Promise<string | null | undefined>>(
+      async (email) => {
+        const auth = googleAuth(email)
+        let nextSyncToken: string | null | undefined = null
+        let nextPageToken: string | undefined = undefined
+        while (!nextSyncToken) {
+          try {
+            const { data } = await calendar.events.list({
+              calendarId: 'primary',
+              auth,
+              maxResults: 2500,
+              pageToken: nextPageToken
+            })
+            nextSyncToken = data.nextSyncToken
+            nextPageToken = data.nextPageToken || undefined
+          } catch (e) {
+            return null
+          }
+        }
+        return nextSyncToken
       }
-      return nextSyncToken
-    })
+    )
   )
 
   // Save new channels to the database
   const newChannels = newChannelsData.reduce<GoogleEventChannel[]>(
     (acc, data, index) => {
       if (!data || !data.resourceId) return acc
+      const syncToken = nextSyncTokens[index]
+      if (!syncToken) return acc
       const channel = new GoogleEventChannel()
       channel.email = createChannelEmails[index]
       channel.expiredAt = new Date(+(data.expiration || 0))
       channel.channelId = channelId
       channel.resourceId = data.resourceId
-      channel.syncToken = nextSyncTokens[index] || ''
+      channel.syncToken = syncToken
       acc.push(channel)
       return acc
     },
     []
   )
-
-  console.log('main ~ newChannels:', newChannels)
   await eventChannelRepository.upsert(newChannels, ['email'])
 }
 
 export async function getAllEmailsInWorkspace() {
-  //! Fix: How to get all real user
-  // const adminAuth = googleAuth(process.env.GOOGLE_ADMIN_EMAIL)
-  // const {
-  //   data: { users }
-  // } = await google
-  //   .admin('directory_v1')
-  //   .users.list({ domain: 'icetea.io', maxResults: 500, auth: adminAuth })
-  // if (!users) throw new Error('No users found in the domain')
+  if (process.env.NODE_ENV === 'development')
+    return [
+      'hieu.pham1@icetea.io',
+      'tung.cong@icetea.io',
+      'van.nguyen@icetea.io'
+    ]
 
-  // const emails = users.reduce<string[]>((acc, { primaryEmail }) => {
-  //   if (primaryEmail && primaryEmail !== process.env.GOOGLE_BOOKING_EMAIL)
-  //     acc.push(primaryEmail)
-  //   return acc
-  // }, [])
-  // console.log('main ~ emails:', emails)
-  // return emails
+  const adminAuth = googleAuth(process.env.GOOGLE_ADMIN_EMAIL)
+  const {
+    data: { users }
+  } = await google
+    .admin('directory_v1')
+    .users.list({ domain: 'icetea.io', maxResults: 500, auth: adminAuth })
+  if (!users) throw new Error('No users found in the domain')
 
-  const dumpEmails = ['hieu.pham1@icetea.io', 'tung.cong@icetea.io']
-  return dumpEmails
+  const emails = users.reduce<string[]>((acc, { primaryEmail }) => {
+    if (primaryEmail && primaryEmail !== process.env.GOOGLE_BOOKING_EMAIL)
+      acc.push(primaryEmail)
+    return acc
+  }, [])
+  return emails
 }
 
 async function filterNewEmails(remoteEmails: string[]): Promise<string[]> {
@@ -133,7 +154,10 @@ async function filterNewEmails(remoteEmails: string[]): Promise<string[]> {
   return newEmails
 }
 
-async function createChannel(calendar: calendar_v3.Calendar, email: string) {
+async function createChannel(
+  calendar: calendar_v3.Calendar,
+  email: string
+): Promise<calendar_v3.Schema$Channel | undefined> {
   try {
     const { data } = await calendar.events.watch({
       auth: googleAuth(email),
@@ -146,8 +170,8 @@ async function createChannel(calendar: calendar_v3.Calendar, email: string) {
       }
     })
     return data
-  } catch (error) {
-    console.log('createChannel ~ error:', error)
+  } catch (error: any) {
+    console.log('createChannel ~ error:', error.response?.data.error)
   }
 }
 
